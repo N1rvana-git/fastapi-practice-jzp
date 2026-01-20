@@ -1,36 +1,24 @@
 from pydantic import BaseModel, field_validator, ConfigDict
 from typing import Union
 
-# 定义基础物品字段（大家都有的）
-class ItemBase(BaseModel):
+#定义输入/输出的数据类型
+class Item(BaseModel):
     name: str
     price: float
-    is_offer: Union[bool, None] = None
-
-# 专门用于"创建"的模型
-class ItemCreate(ItemBase):
-    pass
-
-# 专门用于"更新"的模型（所有字段都是可选的）
-class ItemUpdate(BaseModel):
-    name: Union[str, None] = None
-    price: Union[float, None] = None
-    is_offer: Union[bool, None] = None
-
-# 专门用于"读取/响应"的模型
-class Item(ItemBase):
-    id: int
-    owner_id: int
-    
-    model_config = ConfigDict(from_attributes=True)
+    is_offer: Union[bool,None]=None
+    model_config = ConfigDict(
+        from_attributes=True
+    )#from_attributes=True 是连接你的“内部数据库模型” (models.py)
+    # 和“外部 API 合同” (schemas.py) 之间的桥梁。
+    # 它允许你的 Pydantic 响应模型，能直接从你的 SQLAlchemy ORM 对象中“读取”数据。
 
 class User(BaseModel):
     username: str
     email: Union[str,None]=None
     password: str
-    @field_validator("password")
+    @field_validator("password")#这个装饰器，把它“注册”到了 Pydantic 模型的**“验证生命周期”**中。
     @classmethod
-    def validate_password_strength(cls, v:str) -> str:
+    def validate_password_strength(cls, v:str) -> str:#实现自定义业务规则
         if len(v)<8:
             raise ValueError("Password must be at least 8 characters long")
         return v
@@ -42,7 +30,7 @@ class UpdateItemResponse(BaseModel):
 
 class CreateItemWithUserRequest(BaseModel):
     """组合请求：同时创建物品和可选的用户"""
-    item: ItemCreate
+    item: Item
     user: Union[User, None] = None
 
 class CreateItemWithUserResponse(BaseModel):
